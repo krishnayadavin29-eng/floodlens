@@ -1,0 +1,82 @@
+{
+  "python_version": "3.14.7",
+  "python_packages": {
+    "numpy": "2.5.4",
+    "pandas": "2.3.3",
+    "scikit_learn": "1.9.1",
+    "joblib": "1.6.0"
+  },
+  "seed": 42,
+  "training_rows": 2213,
+  "test_rows": 1331,
+  "training_date_range": [
+    "2022-01-23",
+    "2023-11-10"
+  ],
+  "test_date_range": [
+    "2024-06-27",
+    "2024-09-17"
+  ],
+  "cross_validation": {
+    "method": "GroupKFold on training rows, grouped by spatial_fold",
+    "n_splits": 5,
+    "model_selection_metric": "mean fold average precision",
+    "geographic_independence_note": "Spatial grouping applies only to training-period CV. The later test period contains the same spatial_fold labels as training.",
+    "candidates": {
+      "logistic_regression": {
+        "fold_average_precision": [
+          0.42705468876750735,
+          0.2664957083877474,
+          0.3664608896268331,
+          0.4194163620907845,
+          0.38842088448350715
+        ],
+        "mean_average_precision": 0.37356970667127587,
+        "std_average_precision": 0.05779012544300677
+      },
+      "random_forest": {
+        "fold_average_precision": [
+          0.3718951734819206,
+          0.23468314007018348,
+          0.27566122150022354,
+          0.2895336878335708,
+          0.3804094171192297
+        ],
+        "mean_average_precision": 0.3104365280010256,
+        "std_average_precision": 0.05667132743846109
+      },
+      "extra_trees": {
+        "fold_average_precision": [
+          0.32353936591390187,
+          0.2535883090883834,
+          0.2793868443080769,
+          0.30979585138861543,
+          0.3845052933376099
+        ],
+        "mean_average_precision": 0.3101631328073175,
+        "std_average_precision": 0.044393030878035186
+      }
+    }
+  },
+  "selected_model": "logistic_regression",
+  "temporal_test": {
+    "rows": 1331,
+    "positive_rate": 0.21637866265965439,
+    "average_precision": 0.3400082460568541,
+    "roc_auc": 0.6480105465004794,
+    "fixed_0_5_threshold": {
+      "not_tuned_or_recommended": true,
+      "accuracy": 0.6168294515401953,
+      "precision": 0.29891304347826086,
+      "recall": 0.5729166666666666,
+      "f1": 0.39285714285714285,
+      "confusion_matrix_tn_fp_fn_tp": [
+        656,
+        387,
+        123,
+        165
+      ]
+    }
+  },
+  "interpretation_note": "Scores are not calibrated probabilities, an operational threshold was not selected, and risk is not a safety guarantee."
+}

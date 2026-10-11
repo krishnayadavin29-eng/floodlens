@@ -1,0 +1,48 @@
+{
+  "model_name": "logistic_regression",
+  "target": "waterlogging",
+  "positive_class": 1,
+  "ordered_features": [
+    "elev_m",
+    "rel_elev_250m",
+    "rel_elev_500m",
+    "rel_elev_1000m",
+    "depression_depth_250m",
+    "height_above_local_min_250m",
+    "slope_deg",
+    "dist_river_m",
+    "dist_canal_m",
+    "dist_drain_m",
+    "dist_waterbody_m",
+    "dist_any_water_m",
+    "dist_tunnel_m",
+    "tunnel_flag_50m",
+    "dist_underpass_m",
+    "underpass_flag_50m",
+    "event_month_sin",
+    "event_month_cos"
+  ],
+  "excluded_history_features": [
+    "hist_reports_150m",
+    "hist_distinct_dates_150m"
+  ],
+  "excluded_target_derived_features": [
+    "low_rain_positive"
+  ],
+  "excluded_metadata": [
+    "row_id",
+    "loc_id",
+    "block_id",
+    "latitude",
+    "longitude",
+    "split",
+    "spatial_fold",
+    "event_date",
+    "year",
+    "month",
+    "is_monsoon",
+    "elev_missing",
+    "rainfall_mm"
+  ],
+  "probability_calibrated": false
+}

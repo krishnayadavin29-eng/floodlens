@@ -1,0 +1,7 @@
+# Direct dependencies for ml/train_baseline.py.
+# These constraints allow current supported releases; freeze the exact resolved
+# versions after installing in the chosen Python environment for archival runs.
+numpy>=1.26,<3
+pandas>=2.2,<3
+scikit-learn>=1.5,<2
+joblib>=1.4,<2
