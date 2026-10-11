@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <meta name="theme-color" content="#0b2545">
+
+  <meta name="description" content="Delhi JalAlert: estimate waterlogging risk in Delhi and compare routes by travel time and estimated waterlogging exposure.">
+
+  <title>Delhi JalAlert · Predict Risk. Plan Smarter. Travel Safer.</title>
+
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+
+
+
+  <!-- Font (falls back to the system font if offline) -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+
+
+  <!-- Leaflet (map) -->
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+
+
+  <!-- Our styles -->
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <link rel="stylesheet" href="css/map.css">
+
+  <link rel="stylesheet" href="css/responsive.css">
+  <!-- Mobile-first navigation polish. Keeps existing app.js IDs and view links intact. -->
+  <style>
+    .nav-more-toggle, .nav-more-menu { display: none; }
+    @media (max-width: 900px) {
+      .app-header { position: relative; z-index: 5100; }
+      .app-header .nav-toggle { display: none !important; }
+      .main-nav {
+        position: fixed !important; inset: auto 0 0 0 !important;
+        width: 100% !important; height: calc(64px + env(safe-area-inset-bottom)) !important;
+        box-sizing: border-box; padding: 4px 3px env(safe-area-inset-bottom) !important;
+        display: flex !important; flex-direction: row !important;
+        align-items: stretch !important; justify-content: space-around !important;
+        gap: 0 !important; transform: none !important; overflow: visible !important;
+        background: #fff !important; border-top: 1px solid #dbe3ee;
+        box-shadow: 0 -4px 16px rgba(15, 35, 65, .10); z-index: 5000 !important;
+      }
+      .main-nav > a:not(.nav-secondary), .main-nav > .nav-more-toggle {
+        position: static !important; flex: 1 1 20% !important; min-width: 0 !important;
+        width: auto !important; height: 100% !important; margin: 0 !important;
+        padding: 5px 1px !important; box-sizing: border-box;
+        display: flex !important; flex-direction: column !important;
+        align-items: center !important; justify-content: center !important;
+        gap: 4px !important; text-align: center !important; white-space: normal !important;
+        color: #53647c !important; font-size: 10px !important; line-height: 1.15 !important;
+        text-decoration: none; border: 0; border-radius: 9px; background: transparent;
+      }
+      .main-nav > a:not(.nav-secondary) .icon, .main-nav > .nav-more-toggle .icon { width: 19px; height: 19px; }
+      .main-nav > a.active, .main-nav > a[aria-current="page"] { color: #1264b1 !important; background: #eaf3ff !important; font-weight: 700; }
+      .main-nav > .nav-secondary { display: none !important; }
+      .nav-more-toggle { cursor: pointer; font: inherit; }
+      .nav-more-menu:not([hidden]) {
+        position: absolute; right: 8px; bottom: calc(68px + env(safe-area-inset-bottom));
+        display: flex !important; flex-direction: column; gap: 3px; width: 175px;
+        padding: 7px; background: #fff; border: 1px solid #dbe3ee; border-radius: 14px;
+        box-shadow: 0 8px 30px rgba(15, 35, 65, .18); z-index: 5200;
+      }
+      .nav-more-menu a { display: flex !important; flex-direction: row !important; align-items: center !important;
+        justify-content: flex-start !important; gap: 10px !important; padding: 11px !important;
+        min-height: 42px; border-radius: 8px; color: #26364b !important; font-size: 13px !important;
+        text-decoration: none; }
+      .nav-more-menu a.active, .nav-more-menu a[aria-current="page"] { background: #eaf3ff; color: #1264b1 !important; }
+      .nav-backdrop { display: none !important; }
+      .panel { bottom: calc(64px + env(safe-area-inset-bottom)) !important; max-height: calc(100% - 120px) !important; }
+      .panel-scroll { padding-bottom: 18px !important; }
+      .map-wrap { bottom: 0; }
+      .header-context { display: none !important; }
+      .brand-tag { display: none !important; }
+      .brand-name { font-size: 15px !important; }
+      .header-actions .btn-header { min-width: 38px; padding: 8px !important; }
+      .header-actions .btn-header .hide-sm { display: none !important; }
+      .status-pill { max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .view-title { font-size: clamp(22px, 6vw, 28px); line-height: 1.18; }
+      .view-sub { font-size: 14px; line-height: 1.5; }
+      .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+      .stat-grid .card { min-width: 0; }
+      .quick-actions { display: grid; grid-template-columns: 1fr; }
+    }
+    @media (max-width: 360px) {
+      .main-nav > a:not(.nav-secondary), .main-nav > .nav-more-toggle { font-size: 9px !important; }
+      .main-nav > a:not(.nav-secondary) .icon, .main-nav > .nav-more-toggle .icon { width: 17px; height: 17px; }
+      .stat-grid { grid-template-columns: 1fr !important; }
+    }
+  </style>
+
+
+</head>
+
+<body>
+
+  <a class="skip-link" href="#panelScroll">Skip to main panel</a>
+
+
+
+  <!-- ===================================================== HEADER ===== -->
+
+  <header class="app-header">
+
+    <button class="icon-btn nav-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+
+      <i data-lucide="menu" class="icon" aria-hidden="true"></i>
+
+    </button>
+
+
+
+    <a class="brand" href="#dashboard">
+
+      <img src="assets/logo.svg" alt="" width="34" height="34">
+
+      <span class="brand-text">
+
+        <span class="brand-name">Delhi JalAlert</span>
+
+        <span class="brand-tag">Predict Risk. Plan Smarter. Travel Safer.</span>
+
+      </span>
+
+    </a>
+
+
+
+    <div class="header-context" aria-label="Application context">
+
+    <div class="header-context-chip"><i data-lucide="map-pinned" class="icon" aria-hidden="true"></i><span><strong>Delhi NCR</strong><small>Coverage area</small></span></div>
+
+    <div class="header-context-chip"><i data-lucide="shield-check" class="icon" aria-hidden="true"></i><span><strong>Risk-aware routes</strong><small>Estimates, not guarantees</small></span></div>
+
+  </div>
+
+
+
+  <div class="header-actions">
+
+      <button class="btn btn-header" id="headerSearchBtn" type="button" aria-label="Search places">
+
+        <i data-lucide="search" class="icon" aria-hidden="true"></i><span class="hide-sm">Search places</span>
+
+      </button>
+
+      <button class="btn btn-header" id="headerLocateBtn" type="button" aria-label="Show my location">
+
+        <i data-lucide="locate-fixed" class="icon" aria-hidden="true"></i><span class="hide-sm">My location</span>
+
+      </button>
+
+      <button class="status-pill status-checking" id="statusPill" type="button" aria-live="polite">
+
+        <span class="dot" aria-hidden="true"></span><span id="statusText">Checking API…</span>
+
+      </button>
+
+    </div>
+
+  </header>
+
+
+
+  <!-- ======================================================= MAIN ===== -->
+
+  <div class="app-main">
+
+    <div class="nav-backdrop" id="navBackdrop"></div>
+
+
+
+    <nav class="main-nav" id="mainNav" aria-label="Main navigation">
+
+      <a href="#dashboard" data-view="dashboard"><i data-lucide="layout-dashboard" class="icon" aria-hidden="true"></i><span>Dashboard</span></a>
+
+      <a href="#route" data-view="route"><i data-lucide="route" class="icon" aria-hidden="true"></i><span>Safer routes</span></a>
+
+      <a href="#map" data-view="map"><i data-lucide="layers" class="icon" aria-hidden="true"></i><span>Risk map</span></a>
+
+      <a class="nav-secondary" href="#location" data-view="location"><i data-lucide="map-pin" class="icon" aria-hidden="true"></i><span>Location</span></a>
+
+      <a href="#report" data-view="report"><i data-lucide="megaphone" class="icon" aria-hidden="true"></i><span>Report</span></a>
+
+      <a class="nav-secondary" href="#incidents" data-view="incidents"><i data-lucide="history" class="icon" aria-hidden="true"></i><span>Incidents</span></a>
+
+      <a class="nav-secondary" href="#about" data-view="about"><i data-lucide="info" class="icon" aria-hidden="true"></i><span>About</span></a>
+     <button class="nav-more-toggle" id="navMoreToggle" type="button" aria-expanded="false" aria-controls="mainNavMore"><i data-lucide="more-horizontal" class="icon" aria-hidden="true"></i><span>More</span></button>
+     <div class="nav-more-menu" id="mainNavMore" hidden><a href="#location" data-view="location"><i data-lucide="map-pin" class="icon" aria-hidden="true"></i><span>Location</span></a><a href="#incidents" data-view="incidents"><i data-lucide="history" class="icon" aria-hidden="true"></i><span>Incidents</span></a><a href="#about" data-view="about"><i data-lucide="info" class="icon" aria-hidden="true"></i><span>About</span></a></div>
+
+    </nav>
+
+
+
+    <!-- ================================================= SIDE PANEL ===== -->
+
+    <aside class="panel" id="panel" aria-label="Control panel">
+
+      <button class="sheet-handle" id="sheetHandle" type="button" aria-label="Expand or collapse panel" aria-expanded="true">
+
+        <span class="grip"></span>
+
+      </button>
+
+
+
+      <div class="panel-scroll" id="panelScroll">
+
+
+
+        <!-- ---------- 1. Dashboard ---------- -->
+
+        <section class="view" data-view="dashboard" aria-labelledby="t-dashboard">
+
+          <div class="view-head">
+
+            <div>
+
+              <h1 class="view-title" id="t-dashboard" tabindex="-1">Waterlogging risk dashboard</h1>
+
+              <p class="view-sub">Delhi overview. Estimates and sample data are labelled.</p>
+
+            </div>
+
+            <button class="icon-btn" id="dashRefresh" type="button" aria-label="Refresh dashboard data" title="Refresh">
+
+              <i data-lucide="refresh-cw" class="icon" aria-hidden="true"></i>
+
+            </button>
+
+          </div>
+
+
+
+          <div class="banner" data-mode-banner></div>
+
+
+
+          <div class="section-label">
+
+            <h2>Summary</h2>
+
+            <span class="chip chip-warn" id="dashDemoBadge" hidden>Demo data</span>
+
+          </div>
+
+          <div class="stat-grid" id="dashCards"></div>
+
+
+
+          <div class="quick-actions">
+
+            <button class="btn btn-primary" type="button" data-goto="route"><i data-lucide="route" class="icon" aria-hidden="true"></i>Plan a safer route</button>
+
+            <button class="btn" type="button" data-goto="report"><i data-lucide="megaphone" class="icon" aria-hidden="true"></i>Report waterlogging</button>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2><i data-lucide="cloud-rain" class="icon" aria-hidden="true"></i>Weather in Delhi</h2></div>
+
+            <div id="weatherBody"></div>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2><i data-lucide="activity" class="icon" aria-hidden="true"></i>System status</h2></div>
+
+            <div id="statusBody"></div>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2 id="chartRiskTitle">Risk across assessed locations</h2></div>
+
+            <div class="chart-box"><canvas id="chartRisk" aria-label="Doughnut chart of assessed locations by risk level" role="img"></canvas></div>
+
+            <p class="empty-inline" id="chartRiskEmpty" hidden></p>
+
+            <p class="hint">Counts locations that were assessed. It does not count flooded locations.</p>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2 id="chartMonthTitle">Reports by month</h2></div>
+
+            <div class="chart-box"><canvas id="chartMonth" aria-label="Stacked bar chart of reports by month and status" role="img"></canvas></div>
+
+            <p class="empty-inline" id="chartMonthEmpty" hidden></p>
+
+          </div>
+
+
+
+          <div class="card card-muted">
+
+            <div class="card-head"><h2>Rainfall vs reported waterlogging</h2></div>
+
+            <p class="empty-inline">Not available. This chart needs rainfall history that matches report dates, which no connected data source provides yet.</p>
+
+          </div>
+
+        </section>
+
+
+
+        <!-- ---------- 2. Route planner ---------- -->
+
+        <section class="view" data-view="route" aria-labelledby="t-route" hidden>
+
+          <h1 class="view-title" id="t-route" tabindex="-1">Safer route planner</h1>
+
+          <p class="view-sub">Compare alternative routes by travel time and estimated waterlogging exposure. Click the map to set the destination.</p>
+
+          <div class="banner" data-mode-banner></div>
+
+
+
+          <form id="routeForm" class="route-form" novalidate>
+
+            <div class="mode-row" id="modeGroup" role="radiogroup" aria-label="Travel mode"></div>
+
+            <p class="hint mode-note" id="modeNote"></p>
+
+
+
+            <div class="od-card">
+
+              <div class="od-rail" aria-hidden="true"><span class="od-a"></span><span class="od-line"></span><span class="od-b"></span></div>
+
+              <div class="od-fields">
+
+                <div class="od-field">
+
+                  <label class="sr-only" for="originInput">Start</label>
+
+                  <div class="ac-wrap">
+
+                    <input id="originInput" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="originList" aria-autocomplete="list" placeholder="Choose starting point">
+
+                    <ul class="ac-list" id="originList" role="listbox" aria-label="Start suggestions" hidden></ul>
+
+                  </div>
+
+                  <button class="icon-btn icon-btn-sm" id="originMyLoc" type="button" aria-label="Use my current location" title="Use my current location"><i data-lucide="locate-fixed" class="icon" aria-hidden="true"></i></button>
+
+                  <button class="icon-btn icon-btn-sm pick-btn" id="originPick" type="button" aria-label="Pick start on the map" aria-pressed="false" title="Pick on map"><i data-lucide="crosshair" class="icon" aria-hidden="true"></i></button>
+
+                  <button class="icon-btn icon-btn-sm" id="originClear" type="button" aria-label="Clear start" title="Clear"><i data-lucide="x" class="icon" aria-hidden="true"></i></button>
+
+                </div>
+
+                <p class="field-msg" id="originMsg" role="status"></p>
+
+                <div class="od-field">
+
+                  <label class="sr-only" for="destInput">Destination</label>
+
+                  <div class="ac-wrap">
+
+                    <input id="destInput" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="destList" aria-autocomplete="list" placeholder="Search destination">
+
+                    <ul class="ac-list" id="destList" role="listbox" aria-label="Destination suggestions" hidden></ul>
+
+                  </div>
+
+                  <button class="icon-btn icon-btn-sm pick-btn" id="destPick" type="button" aria-label="Pick destination on the map" aria-pressed="false" title="Pick on map"><i data-lucide="crosshair" class="icon" aria-hidden="true"></i></button>
+
+                  <button class="icon-btn icon-btn-sm" id="destClear" type="button" aria-label="Clear destination" title="Clear"><i data-lucide="x" class="icon" aria-hidden="true"></i></button>
+
+                </div>
+
+                <p class="field-msg" id="destMsg" role="status"></p>
+
+              </div>
+
+              <button class="icon-btn icon-btn-round od-swap" id="swapBtn" type="button" aria-label="Swap start and destination" title="Swap start and destination"><i data-lucide="arrow-up-down" class="icon" aria-hidden="true"></i></button>
+
+            </div>
+
+
+
+            <fieldset class="field segmented-field">
+
+              <legend>Rank routes by</legend>
+
+              <div class="segmented" role="radiogroup">
+
+                <label><input type="radio" name="preference" value="lowest_risk"><span>Lowest risk</span></label>
+
+                <label><input type="radio" name="preference" value="balanced" checked><span>Balanced</span></label>
+
+                <label><input type="radio" name="preference" value="fastest"><span>Fastest</span></label>
+
+              </div>
+
+              <p class="hint">Re-orders the routes found. The routing service does not avoid waterlogged roads.</p>
+
+            </fieldset>
+
+
+
+            <button class="btn btn-primary btn-block" id="findRoutesBtn" type="submit"><i data-lucide="search" class="icon" aria-hidden="true"></i>Find Routes</button>
+
+          </form>
+
+
+
+          <div id="routeStatus" class="route-status" aria-live="polite"></div>
+
+
+
+          <div id="routeResults" hidden>
+
+            <div class="reco" id="routeReco"></div>
+
+            <div id="routeCompare"></div>
+
+            <div id="routeCards" class="route-cards"></div>
+
+            <p class="disclaimer">Waterlogging estimates are not guarantees. No route is confirmed safe or flood-free, and conditions can change within minutes. Follow local advisories and traffic police instructions.</p>
+
+            <div class="start-bar" id="startBar" hidden>
+
+              <p class="start-text" id="startBarText"></p>
+
+              <button class="btn btn-primary" id="startJourneyBtn" type="button"><i data-lucide="navigation" class="icon" aria-hidden="true"></i>Start journey</button>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+
+        <!-- ---------- 3. Risk map ---------- -->
+
+        <section class="view" data-view="map" aria-labelledby="t-map" hidden>
+
+          <h1 class="view-title" id="t-map" tabindex="-1">Waterlogging risk map</h1>
+
+          <p class="view-sub">Turn map layers on or off and browse assessed locations.</p>
+
+          <div class="banner" data-mode-banner></div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2>Map layers</h2></div>
+
+            <div class="basemap-list" data-basemap-list role="radiogroup" aria-label="Base map style"></div>
+
+            <ul class="layer-list">
+
+              <li><label class="check"><input type="checkbox" data-layer="base"><span>Show base map</span></label></li>
+
+              <li><label class="check"><input type="checkbox" data-layer="route"><span>Routes</span></label></li>
+
+              <li><label class="check"><input type="checkbox" data-layer="riskColors"><span>Colour routes by waterlogging risk</span></label></li>
+
+              <li><label class="check"><input type="checkbox" data-layer="risk"><span>Risk zones (analysis overlay)</span></label><small class="layer-status" data-layer-status="risk"></small></li>
+
+              <li><label class="check"><input type="checkbox" data-layer="hotspots"><span>Historical hotspots</span></label><small class="layer-status" data-layer-status="hotspots"></small></li>
+
+            </ul>
+
+            <p class="hint">Click the map to inspect any point. The overlays are for analysis and are off by default. Historical hotspots are past records and do not mean the road is flooded now.</p>
+
+          </div>
+
+
+
+          <details class="card collapsible" id="hotspotDetails">
+
+            <summary><h2>Assessed locations <span class="count" id="hotspotCount"></span></h2></summary>
+
+            <ul class="hotspot-list" id="hotspotList"></ul>
+
+          </details>
+
+        </section>
+
+
+
+        <!-- ---------- 4. Location details ---------- -->
+
+        <section class="view" data-view="location" aria-labelledby="t-location" hidden>
+
+          <h1 class="view-title" id="t-location" tabindex="-1">Location risk details</h1>
+
+          <p class="view-sub">Click a point on the map, then choose “Check risk here”.</p>
+
+          <div class="banner" data-mode-banner></div>
+
+          <div id="locationBody" class="location-body" aria-live="polite"></div>
+
+        </section>
+
+
+
+        <!-- ---------- 5. Report ---------- -->
+
+        <section class="view" data-view="report" aria-labelledby="t-report" hidden>
+
+          <h1 class="view-title" id="t-report" tabindex="-1">Report waterlogging</h1>
+
+          <p class="view-sub">Tell others what you can see where you are.</p>
+
+          <div class="banner banner-info"><i data-lucide="info" class="icon" aria-hidden="true"></i><p>Reports are user observations and may need verification. They are not treated as confirmed floods and are not fed into the model automatically.</p></div>
+
+
+
+          <form id="reportForm" class="report-form" novalidate>
+
+            <div class="field">
+
+              <label for="reportLocDisplay">Location <span class="req">required</span></label>
+
+              <input id="reportLocDisplay" type="text" readonly placeholder="Choose on the map or use your location" aria-describedby="err-location">
+
+              <div class="btn-row">
+
+                <button class="btn btn-sm" id="reportPick" type="button"><i data-lucide="crosshair" class="icon" aria-hidden="true"></i>Pick on map</button>
+
+                <button class="btn btn-sm" id="reportLocate" type="button"><i data-lucide="locate-fixed" class="icon" aria-hidden="true"></i>Use my location</button>
+
+                <button class="btn btn-sm btn-ghost" id="reportClearLoc" type="button">Clear</button>
+
+              </div>
+
+              <p class="field-msg is-error" id="err-location" role="alert"></p>
+
+            </div>
+
+
+
+            <div class="field">
+
+              <label for="reportDesc">What did you see? <span class="req">required</span></label>
+
+              <textarea id="reportDesc" rows="4" placeholder="For example: water about knee-deep across both lanes near the underpass" aria-describedby="err-description descCount"></textarea>
+
+              <div class="field-foot"><p class="field-msg is-error" id="err-description" role="alert"></p><span class="counter" id="descCount">0 / 500</span></div>
+
+            </div>
+
+
+
+            <fieldset class="field segmented-field" id="severityGroup" aria-describedby="err-severity">
+
+              <legend>Severity <span class="req">required</span></legend>
+
+              <div class="segmented severity" role="radiogroup">
+
+                <label class="sev-low"><input type="radio" name="severity" value="low"><span>Low</span></label>
+
+                <label class="sev-moderate"><input type="radio" name="severity" value="moderate"><span>Moderate</span></label>
+
+                <label class="sev-high"><input type="radio" name="severity" value="high"><span>High</span></label>
+
+              </div>
+
+              <p class="field-msg is-error" id="err-severity" role="alert"></p>
+
+            </fieldset>
+
+
+
+            <div class="field">
+
+              <label for="reportWhen">When did you see it? <span class="req">required</span></label>
+
+              <input id="reportWhen" type="datetime-local" aria-describedby="err-when">
+
+              <p class="field-msg is-error" id="err-when" role="alert"></p>
+
+            </div>
+
+
+
+            <div class="field">
+
+              <label for="reportPhoto">Photo <span class="opt">optional</span></label>
+
+              <input id="reportPhoto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="err-photo">
+
+              <p class="hint">JPEG, PNG or WebP, up to 5 MB. Avoid faces and number plates.</p>
+
+              <div class="photo-preview" id="photoPreview" hidden>
+
+                <img id="photoPreviewImg" alt="Preview of the photo you selected">
+
+                <button class="btn btn-sm" id="photoRemove" type="button">Remove photo</button>
+
+              </div>
+
+              <p class="field-msg is-error" id="err-photo" role="alert"></p>
+
+            </div>
+
+
+
+            <div class="btn-row">
+
+              <button class="btn btn-primary" id="reportSubmit" type="submit"><i data-lucide="send" class="icon" aria-hidden="true"></i>Submit report</button>
+
+              <button class="btn btn-ghost" type="reset">Reset</button>
+
+            </div>
+
+            <div id="reportResult" aria-live="polite"></div>
+
+          </form>
+
+        </section>
+
+
+
+        <!-- ---------- 6. Incidents ---------- -->
+
+        <section class="view" data-view="incidents" aria-labelledby="t-incidents" hidden>
+
+          <h1 class="view-title" id="t-incidents" tabindex="-1">Recent reports &amp; incident history</h1>
+
+          <p class="view-sub">Verified records, unverified reports and historical records are shown separately.</p>
+
+          <div class="banner" data-mode-banner></div>
+
+
+
+          <form id="incidentFilters" class="filters" role="search" onsubmit="return false">
+
+            <div class="field">
+
+              <label for="fSearch">Search</label>
+
+              <input id="fSearch" type="search" placeholder="Location or keyword" autocomplete="off">
+
+            </div>
+
+            <div class="filter-grid">
+
+              <div class="field">
+
+                <label for="fSeverity">Severity</label>
+
+                <select id="fSeverity"><option value="">All</option><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option></select>
+
+              </div>
+
+              <div class="field">
+
+                <label for="fStatus">Status</label>
+
+                <select id="fStatus"><option value="">All</option><option value="verified">Verified</option><option value="unverified">Unverified</option><option value="historical">Historical record</option></select>
+
+              </div>
+
+              <div class="field">
+
+                <label for="fFrom">From</label>
+
+                <input id="fFrom" type="date">
+
+              </div>
+
+              <div class="field">
+
+                <label for="fTo">To</label>
+
+                <input id="fTo" type="date">
+
+              </div>
+
+            </div>
+
+            <button class="btn btn-sm btn-ghost" id="fReset" type="button">Reset filters</button>
+
+          </form>
+
+
+
+          <p class="result-count" id="incidentCount" aria-live="polite"></p>
+
+          <div id="incidentList" class="incident-list"></div>
+
+        </section>
+
+
+
+        <!-- ---------- 7. About ---------- -->
+
+        <section class="view" data-view="about" aria-labelledby="t-about" hidden>
+
+          <h1 class="view-title" id="t-about" tabindex="-1">About &amp; how it works</h1>
+
+          <p class="view-sub">Delhi JalAlert is a student project for waterlogging awareness and route planning.</p>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2>How it works</h2></div>
+
+            <ol class="steps">
+
+              <li><strong>Find routes.</strong> A routing service (OSRM or openrouteservice) returns up to three alternative road routes.</li>
+
+              <li><strong>Score the routes.</strong> The backend model estimates waterlogging risk for each section of each route.</li>
+
+              <li><strong>Compare.</strong> The app colours each section and ranks routes using simple, visible rules.</li>
+
+            </ol>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2>What the labels mean</h2></div>
+
+            <dl class="def-list">
+
+              <div><dt>Model-predicted</dt><dd>An estimate from the machine-learning model. It is not an observation.</dd></div>
+
+              <div><dt>Forecast</dt><dd>Expected rain or conditions in the future. Never shown as observed rainfall.</dd></div>
+
+              <div><dt>Live observation</dt><dd>A measurement of current conditions from a named source.</dd></div>
+
+              <div><dt>Historical record</dt><dd>A past incident. It does not mean the place is flooded now.</dd></div>
+
+              <div><dt>Unverified report</dt><dd>A citizen observation that nobody has checked yet.</dd></div>
+
+              <div><dt>Unknown</dt><dd>No prediction available. Shown in grey, and never treated as low risk.</dd></div>
+
+            </dl>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2>How routes are ranked</h2></div>
+
+            <ul class="plain-list">
+
+              <li><strong>Fastest:</strong> shortest travel time first.</li>
+
+              <li><strong>Lowest risk:</strong> lowest length-weighted average risk score first; ties go to the quicker route.</li>
+
+              <li><strong>Balanced:</strong> equal weight on travel time and risk score, each scaled across the routes found.</li>
+
+              <li>Routes without a risk assessment are listed after assessed routes.</li>
+
+            </ul>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2>Limits to keep in mind</h2></div>
+
+            <ul class="plain-list">
+
+              <li>Estimates can be wrong and conditions change quickly. A lower-risk route is not a guaranteed safe route.</li>
+
+              <li>The model score is shown as a “risk score”, not a probability, unless the backend says it is calibrated.</li>
+
+              <li>The routing service finds roads; it does not know which ones are flooded.</li>
+
+              <li>Two-wheeler routes currently use the car road network.</li>
+
+            </ul>
+
+          </div>
+
+
+
+          <div class="card">
+
+            <div class="card-head"><h2>Current setup</h2></div>
+
+            <dl class="detail-list compact">
+
+              <div class="detail-row"><dt>Mode</dt><dd id="aboutMode"></dd></div>
+
+              <div class="detail-row"><dt>Map tiles</dt><dd>© OpenStreetMap contributors</dd></div>
+
+              <div class="detail-row"><dt>Place search</dt><dd>Nominatim (OpenStreetMap)</dd></div>
+
+              <div class="detail-row"><dt>Routing</dt><dd>OSRM public demo server</dd></div>
+
+              <div class="detail-row"><dt>Weather</dt><dd>Open-Meteo</dd></div>
+
+            </dl>
+
+          </div>
+
+        </section>
+
+
+
+        <p class="panel-footer">Delhi JalAlert is a college project. Estimates only; not an official warning service. Map © OpenStreetMap contributors.</p>
+
+      </div>
+
+    </aside>
+
+
+
+    <!-- ===================================================== MAP ===== -->
+
+    <section class="map-wrap" aria-label="Interactive map of Delhi">
+
+      <div id="map" tabindex="0" aria-label="Map. Use arrow keys to pan and plus or minus to zoom."></div>
+
+
+
+      <div class="map-loading" id="mapLoading" role="status"><span class="spinner" aria-hidden="true"></span>Loading map…</div>
+
+      <div class="map-message" id="mapMessage" role="alert" hidden></div>
+
+
+
+      <div class="pick-banner" id="pickBanner" role="status" hidden>
+
+        <i data-lucide="crosshair" class="icon" aria-hidden="true"></i>
+
+        <span id="pickBannerText"></span>
+
+        <button class="btn btn-sm" id="pickCancel" type="button">Cancel</button>
+
+      </div>
+
+
+
+      <button class="panel-tab" id="panelTab" type="button" aria-label="Collapse side panel" aria-expanded="true" title="Collapse side panel"><i data-lucide="chevron-left" class="icon" aria-hidden="true"></i></button>
+
+
+
+      <div class="map-toolbar" role="toolbar" aria-label="Map controls">
+
+        <div class="map-btn-group">
+
+          <button class="map-btn" id="zoomInBtn" type="button" aria-label="Zoom in" title="Zoom in"><i data-lucide="plus" class="icon" aria-hidden="true"></i></button>
+
+          <button class="map-btn" id="zoomOutBtn" type="button" aria-label="Zoom out" title="Zoom out"><i data-lucide="minus" class="icon" aria-hidden="true"></i></button>
+
+        </div>
+
+        <button class="map-btn" id="mapLocateBtn" type="button" aria-label="Show my location" title="Show my location"><i data-lucide="locate-fixed" class="icon" aria-hidden="true"></i></button>
+
+        <button class="map-btn" id="recenterBtn" type="button" aria-label="Recenter on route" title="Recenter on route"><i data-lucide="target" class="icon" aria-hidden="true"></i></button>
+
+        <button class="map-btn" id="layersBtn" type="button" aria-label="Map layers" aria-expanded="false" aria-controls="layerMenu" title="Map layers"><i data-lucide="layers" class="icon" aria-hidden="true"></i></button>
+
+        <button class="map-btn" id="fullscreenBtn" type="button" aria-label="Full screen" title="Full screen"><i data-lucide="maximize" class="icon" aria-hidden="true"></i></button>
+
+        <button class="map-btn" id="resetViewBtn" type="button" aria-label="Reset to Delhi overview" title="Delhi overview"><i data-lucide="home" class="icon" aria-hidden="true"></i></button>
+
+      </div>
+
+
+
+      <div class="layer-menu" id="layerMenu" hidden>
+
+        <p class="layer-menu-title">Map style</p>
+
+        <div class="basemap-list" data-basemap-list role="radiogroup" aria-label="Base map style"></div>
+
+        <p class="layer-menu-title">Layers</p>
+
+        <label class="check"><input type="checkbox" data-layer="route"><span>Routes</span></label>
+
+        <label class="check"><input type="checkbox" data-layer="riskColors"><span>Colour routes by risk</span></label>
+
+        <label class="check"><input type="checkbox" data-layer="risk"><span>Risk zones (analysis)</span></label>
+
+        <small class="layer-status" data-layer-status="risk"></small>
+
+        <label class="check"><input type="checkbox" data-layer="hotspots"><span>Historical hotspots</span></label>
+
+        <small class="layer-status" data-layer-status="hotspots"></small>
+
+      </div>
+
+
+
+      <div class="map-legend" id="mapLegend" aria-label="Waterlogging risk legend" title="Estimated waterlogging risk. Estimates, not confirmed conditions.">
+
+        <span class="legend-title">Risk</span>
+
+        <span class="lg"><i style="background:var(--risk-low)"></i>Low</span>
+
+        <span class="lg"><i style="background:var(--risk-moderate)"></i>Moderate</span>
+
+        <span class="lg"><i style="background:var(--risk-high)"></i>High</span>
+
+        <span class="lg"><i class="lg-unknown"></i>Unknown</span>
+
+      </div>
+
+
+
+      <!-- Journey (route-following) HUD: shown only while a journey is active -->
+
+      <div class="nav-hud" id="navHud" hidden>
+
+        <div class="nav-top">
+
+          <div class="nav-card">
+
+            <span class="nav-icon" id="navIcon" aria-hidden="true"></span>
+
+            <div class="nav-main" aria-live="polite">
+
+              <p class="nav-dist" id="navDist"></p>
+
+              <p class="nav-text" id="navText"></p>
+
+            </div>
+
+            <button class="icon-btn icon-btn-sm" id="navStepsBtn" type="button" aria-expanded="false" aria-controls="navSteps" aria-label="Show upcoming steps" title="Upcoming steps"><i data-lucide="list" class="icon" aria-hidden="true"></i></button>
+
+          </div>
+
+          <div class="nav-steps" id="navSteps" hidden><ol id="navStepList" aria-label="Upcoming steps"></ol></div>
+
+          <div class="nav-offroute" id="navOffroute" role="alert" hidden>
+
+            <i data-lucide="alert-triangle" class="icon" aria-hidden="true"></i>
+
+            <p id="navOffText"></p>
+
+            <button class="btn btn-sm" id="navRecalcOff" type="button">Recalculate</button>
+
+          </div>
+
+          <div class="nav-alert" id="navAlert" role="alert" hidden>
+
+            <i data-lucide="droplets" class="icon" aria-hidden="true"></i>
+
+            <div class="nav-alert-body">
+
+              <p class="nav-alert-title" id="navAlertTitle"></p>
+
+              <p class="nav-alert-text" id="navAlertBody"></p>
+
+              <div class="btn-row">
+
+                <button class="btn btn-sm" id="navAlertRecalc" type="button">Recalculate route</button>
+
+                <button class="btn btn-sm btn-ghost" id="navAlertDismiss" type="button">Dismiss</button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="nav-bottom">
+
+          <div class="nav-risk" id="navRisk"></div>
+
+          <div class="nav-stats">
+
+            <div><strong id="navEta">—</strong><span>arrival</span></div>
+
+            <div><strong id="navTime">—</strong><span>remaining</span></div>
+
+            <div><strong id="navRemain">—</strong><span>distance</span></div>
+
+          </div>
+
+          <div class="nav-progress" id="navProgressWrap" role="progressbar" aria-label="Route progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="navProgress"></div></div>
+
+          <p class="nav-note" id="navNote"></p>
+
+          <div class="nav-actions">
+
+            <button class="btn btn-sm" id="navRecenter" type="button"><i data-lucide="target" class="icon" aria-hidden="true"></i>Recenter</button>
+
+            <button class="btn btn-sm" id="navTrackBtn" type="button"><i data-lucide="locate-fixed" class="icon" aria-hidden="true"></i>Turn on tracking</button>
+
+            <button class="btn btn-sm btn-ghost" id="navSimBtn" type="button">Simulate (demo)</button>
+
+            <button class="btn btn-danger" id="navEnd" type="button">End journey</button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+
+
+  <footer class="app-footer">
+
+    <span><strong>Delhi JalAlert</strong> · college project · estimates only, not an official warning service</span>
+
+    <span>Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Routing OSRM · Search Nominatim · Weather Open-Meteo</span>
+
+  </footer>
+
+
+
+  <!-- ================================================= DIALOGS & TOASTS ===== -->
+
+  <dialog class="dialog" id="confirmDialog" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+
+    <h2 id="confirmTitle"></h2>
+
+    <p id="confirmMessage"></p>
+
+    <div class="btn-row dialog-actions">
+
+      <button class="btn" id="confirmCancel" type="button">Cancel</button>
+
+      <button class="btn btn-primary" id="confirmOk" type="button">Continue</button>
+
+    </div>
+
+  </dialog>
+
+
+
+  <dialog class="dialog dialog-search" id="searchDialog" aria-labelledby="searchTitle">
+
+    <div class="dialog-head">
+
+      <h2 id="searchTitle">Search places</h2>
+
+      <button class="icon-btn" id="searchClose" type="button" aria-label="Close search"><i data-lucide="x" class="icon" aria-hidden="true"></i></button>
+
+    </div>
+
+    <div class="ac-wrap">
+
+      <label class="sr-only" for="searchInput">Place in Delhi</label>
+
+      <input id="searchInput" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="searchList" aria-autocomplete="list" placeholder="Search a place in Delhi">
+
+      <ul class="ac-list" id="searchList" role="listbox" aria-label="Place suggestions" hidden></ul>
+
+    </div>
+
+    <p class="hint">Pick a result to show it on the map and check its risk.</p>
+
+  </dialog>
+
+
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+
+
+  <noscript><p class="noscript">Delhi JalAlert needs JavaScript to run.</p></noscript>
+
+
+
+  <!-- Libraries (loaded before our module so L, Chart and lucide exist) -->
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+
+
+
+  <!-- Our app (ES modules: serve over http://, e.g. VS Code Live Server) -->
+
+
+  <script>
+    // The More menu only controls visibility; existing app.js continues to handle navigation.
+    document.addEventListener('DOMContentLoaded', function () {
+      const toggle = document.getElementById('navMoreToggle');
+      const menu = document.getElementById('mainNavMore');
+      if (!toggle || !menu) return;
+      toggle.addEventListener('click', function () {
+        const open = menu.hasAttribute('hidden');
+        if (open) menu.removeAttribute('hidden'); else menu.setAttribute('hidden', '');
+        toggle.setAttribute('aria-expanded', String(open));
+      });
+      menu.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          menu.setAttribute('hidden', '');
+          toggle.setAttribute('aria-expanded', 'false');
+        });
+      });
+      document.addEventListener('click', function (event) {
+        if (!menu.contains(event.target) && !toggle.contains(event.target)) {
+          menu.setAttribute('hidden', '');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  </script>
+
+  <script type="module" src="js/app.js"></script>
+
+</body>
+
+</html>
