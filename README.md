@@ -27,7 +27,7 @@ FloodWise is an intelligent application designed to predict street-level waterlo
 ## 🌐 Companion Website
 
 Check out our web platform and project portal here:  
-👉 https://drive.google.com/file/d/1QWbktj0gSTrI6I_FTG16aNdzWRKJtbBc/view?usp=sharing
+👉 Mobile App Google Download Link: https://drive.google.com/file/d/1QWbktj0gSTrI6I_FTG16aNdzWRKJtbBc/view?usp=sharing
 
 ---
 
