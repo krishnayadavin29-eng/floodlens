@@ -36,7 +36,7 @@ Check out our web platform and project portal here:
 ### 1. Backend API Configuration
 If you are running the backend prediction service locally or via cloud deployment (e.g., Render):
 * Set your model mode to **Remote API** in the app settings.
-* Provide your deployed endpoint URL (e.g., `https://your-app.onrender.com/predict`).
+* Provide your deployed endpoint URL (e.g., https://52-65-180-152.nip.io/docs).
 
 ### 2. Map Provider Setup
 FloodWise supports dual map configurations:
